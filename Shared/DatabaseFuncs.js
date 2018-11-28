@@ -1,3 +1,4 @@
+
 var Connection = require('tedious').Connection;
 var Request = require('tedious').Request;
 var TYPES = require('tedious').TYPES;
@@ -12,7 +13,7 @@ var config = {
 function doquery(context, query)
 {
  return new Promise(function(resolve, reject) {
-      var _currentData = new Array();
+      var _currentData = [];
       var connection = new Connection(config);
 
       try{
@@ -24,10 +25,12 @@ function doquery(context, query)
           });
 
          request.on('row', function(columns) {
-                    columns.forEach(function(element) {
-                        _currentData.push([element.metadata.colName,element.value]);
+           var tempObject = {};
+             columns.forEach(function(element) {
+               tempObject[element.metadata.colName] = element.value;
                     }, this);
-                });
+           _currentData.push(tempObject);
+         });
 
          request.on('requestCompleted', function () {
                     context.log('Request completed.');
