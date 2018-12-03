@@ -1,18 +1,20 @@
 const axios = require('axios');
+const dbconnector = require('../Shared/DatabaseFuncs');
 
 const axiosCustom = axios.create({
     baseURL: 'https://northeurope.api.cognitive.microsoft.com/face/v1.0',    
     headers: {
         'Content-Type': 'application/json',
-        'Ocp-Apim-Subscription-Key': process.env['FaceApiAccessKey']         
+        'Ocp-Apim-Subscription-Key': process.env['FaceApiAccessKey2']         
     }
   });
 
 module.exports = async function (context, req) {
-    context.log('JavaScript HTTP trigger function processed a request.');
-    
-    const contentLength = parseInt(req.headers['content-length']);
-
+  context.log('JavaScript HTTP trigger function processed a request.');
+//if (req.headers['device-id'] == process.env['device-key'])
+  const contentLength = parseInt(req.headers['content-length']);
+  if(contentLength){
+    context.log(contentLength);
     // Get the multipart boundary marker, see multipart details https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html
     const boundaryMarkerIndex = req.headers['content-type'].indexOf("=");
     const boundary = req.headers['content-type'].substring(boundaryMarkerIndex+1);
@@ -52,88 +54,83 @@ module.exports = async function (context, req) {
         const response = await axiosCustom.post(`/detect`, finalImageData, { headers: { 'Content-Type': 'application/octet-stream' }});
         returnData.status = response.status;
         returnData.data = response.data;
-        //TODO: kun tunnistetaan naama -> tunnistetaan -> sitten haetaan datat jotka palautetaan
-        //ATM palauttaa joka tilanteessa kun ei tule erroria vakio Json-objektin
-        context.res = {
-            // status: 200, /* Defaults to 200 */
-            body: getJson(),
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        };
-    }
+        context.log(returnData);
+        //check if any faces were detected
+        if (typeof returnData.data !== 'undefined' && returnData.data.length > 0) {
+          var detectedFaceIds = new Array();
+          detectedFaceIds.push(returnData.data[0].faceId);
+          context.log(detectedFaceIds);
+          //try to identify persons
+            try{
+                const identifiedFaceId = await identifyDetectedFace(detectedFaceIds);
+                context.log("Tunnistustulos: ");
+                context.log(identifiedFaceId);
+                if (identifiedFaceId != undefined) {
+                  //cross-referance identified id with db
+                  try{
+                    context.log("SELECT FirstName, LastName FROM dbo.Persons where PersonID = '" + identifiedFaceId.personId.toString() + "'");
+                    const identifyresult = await dbconnector.querydb(context, "SELECT FirstName, LastName, GroupID FROM dbo.Persons where PersonID = '" + identifiedFaceId.personId.toString() + "'");
+                    context.log("query tulos: ");
+                    context.log(identifyresult);
+                    if(identifyresult != undefined){
+                      context.res = {
+                        // status: 200, /* Defaults to 200 */
+                        body: getJson(identifyresult),
+                        headers: {'Content-Type': 'application/json'}};
+                    }
+                  }catch(err){context.log(err);}
+                } else {context.res = nothingFound("No known users");}
+              }catch(err){context.log(err);}
+    } else {context.res = nothingFound("No face detected");}}
     catch(error)
     {
-        returnData.status = error.response.status;
-        returnData.data = error.response.data;
-        context.res = {
-            body: returnData
-        }
+        context.log(error);
+        context.res = nothingFound("Error");
     }
+ } else {context.res = nothingFound("no content");}
 };
 
-function getJson(/*userid*/)
+async function identifyDetectedFace(faceIds)
+{
+    const jsonToPost = {
+        "personGroupId": '1',
+        "faceIds": faceIds,
+        "maxNumOfCandidatesReturned": 1,
+        "confidenceThreshold": 0.8
+    }
+    const returnData = { status: null,
+                         data: null };
+    try{
+        const response = await axiosCustom.post(`/identify`, jsonToPost, { headers: { 'Content-Type': 'application/json' }})
+        .catch(err=>{return err.response;});
+        returnData.status = response.status;
+        returnData.data = response.data;
+        return returnData.data[0].candidates[0];
+    }
+    catch (error){
+        return error;
+    }
+}
+
+function nothingFound(message)
+{
+    return {// status: 200, /* Defaults to 200 */
+            body: {"error" : message},
+            headers: {'Content-Type': 'application/json'}};
+}
+
+function getJson(identifyresult)
 {
     //TODO:find user data by id passed as parameter
     //TODO:get user preferanses from db (function1) and get data from selected API's(function2)
     return {
-        "firstName" : "First",
-        "lastName" : "Last",
-        "groupID" : "GroupID",
-        "schedule" : [
-            {
-                "name" : "Course Name",
-                "teacher" : "Teacher Name",
-                "room" : "Room Code",
-                "day" : "Mon",
-                "start" : "8:45",
-                "end" : "10:15"
-            },
-            {
-                "name" : "Course Name",
-                "teacher" : "Teacher Name",
-                "room" : "Room Code",
-                "day" : "Tue",
-                "start" : "17:30",
-                "end" : "19:00"
-            },
-            {
-                "name" : "Course Name",
-                "teacher" : "Teacher Name",
-                "room" : "Room Code",
-                "day" : "Tue",
-                "start" : "19:15",
-                "end" : "20:45"
-            },
-            {
-                "name" : "Course Name",
-                "teacher" : "Teacher Name",
-                "room" : "Room Code",
-                "day" : "Wed",
-                "start" : "12:00",
-                "end" : "14:00"
-            },
-            {
-                "name" : "Course Name",
-                "teacher" : "Teacher Name",
-                "room" : "Room Code",
-                "day" : "Thu",
-                "start" : "8:15",
-                "end" : "10:00"
-            },
-            {
-                "name" : "Course Name",
-                "teacher" : "Teacher Name",
-                "room" : "Room Code",
-                "day" : "Fri",
-                "start" : "19:15",
-                "end" : "20:45"
-            }
-        ],
+            "firstname" : identifyresult[0].FirstName,
+            "lastname" : identifyresult[0].LastName,
+            "schedule" : "https://oiva.oamk.fi/_lukkarikone/kalenteri/json/varaukset.php?ryhma=" + identifyresult[0].GroupID,
         "foodMenu" : [
             {
                 "type" : "Lunch",
-                "menu items" : [
+                "menuItems" : [
                     {
                         "name" : "Food Name"
                     }
