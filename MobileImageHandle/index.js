@@ -58,6 +58,7 @@ function uploadImage(req) {
             }
         }
     }
+
     // remove the multipart header
     const finalImageData = testData.slice(dataStartIndex);
     //console.log(finalImageData);
@@ -65,7 +66,6 @@ function uploadImage(req) {
 }
 
 function saveImageToAzure(imageData) {
-
     // Create random name for image
     const shortid = require('shortid');
     const imgName = shortid.generate();
@@ -212,8 +212,10 @@ async function dbQueryGet(query, callback) {
 module.exports = async function (context, req) {
     context.log('JavaScript HTTP trigger function processed a request.');
 
-    let userId = req.headers['user'];    // get user's id from request
-    context.log("userid from header:", userId);
+    let userId = req.headers.user_id;    // get user's id from request
+    context.log(userId);
+    context.log(req.headers);
+
     let imgData = uploadImage(req); // Get image from request
     let imgUrl = saveImageToAzure(imgData);   // Upload image to Azure Blob Storage and get url
 
