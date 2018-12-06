@@ -1,5 +1,7 @@
 // Set database configurations for connecting:
 const dbconnector = require('../Shared/DatabaseFuncs.js');
+const crypt = require('../Shared/Crypt.js');
+
 
 module.exports = async function (context, req) {
     context.log('JavaScript HTTP trigger function processed a request.');
@@ -12,30 +14,63 @@ module.exports = async function (context, req) {
     let email = json['email']; // Email
     //let org = ""; // Organisation
     let pw = json['password']; // Password
-    //pw = pw + process.env.Salt; // add salt to password
-    //context.log(pw);
 
     if (fn && ln && email && pw) {
-        // Set personId and imgUrl to database, using user ID:
 
+        var splitEmail = email.split('@');
+        context.log(splitEmail[1]);
         try {
-            var query = await dbconnector.querydb(context, 
-                "INSERT INTO dbo.Persons (FirstName, LastName, Email, Pword) VALUES ('"
-                + fn +"','" + ln + "','" + email + "','" + pw + "')");
+            var checkEmail = await dbconnector.checkEmail(context, splitEmail[1]);
+            context.log(checkEmail);
 
-                // var query = await dbconnector.querydb(context, 
-                //"INSERT INTO dbo.Persons (FirstName, LastName, Email, Psword) VALUES ("
-                //+ fn +"," + ln + "," + email + "," + "HASHBYTES('SHA2_512'," + pw + ")");
+            if (checkEmail[0].RESULT){
 
-            var querySelect = await dbconnector.querydb(context, 
-                "SELECT ID FROM dbo.Persons WHERE Email = '" + email + "'");
-            var userid = querySelect[0].ID;
-        
-            context.log(userid);
-            context.res = {
-                status: 200,
-                body: {"id" : userid}
-            };
+                try {
+                    var duplicate = await dbconnector.duplicateEmail(context, email);
+                    context.log(duplicate);
+
+                    if(!duplicate[0].RESULT){
+                        try {
+                            var saltHash = crypt.hashP(pw);
+                            hashPw = saltHash[1];
+                            hashSalt = saltHash[0];
+                            var query = await dbconnector.newuser(context, fn, ln, email, hashPw, hashSalt);
+                            context.log(query);
+
+                            context.res = {
+                                status: 200,
+                                body: { "result" : "true",
+                                        "message" : "Register succeeded." }
+                            };
+                        }
+                        catch(err){
+                            context.log(err);
+                        }
+                    }
+                    else {
+                        context.res = {
+                            status: 400,
+                            body: { "result" : "false",
+                                    "message" : "This email already has an account." }
+                        };
+                    }
+                }
+                catch(err){
+                    context.res = {
+                        status: 400,
+                        body: { "result" : "false",
+                                "message" : err }
+                    };
+                }
+            }
+            else {
+                
+                context.res = {
+                    status: 400,
+                    body: { "result" : "false",
+                            "message"  : "Please register with your organisation email."}
+                };
+            }
         }
         catch(err){
             context.log(err);
@@ -44,7 +79,7 @@ module.exports = async function (context, req) {
     else {
         context.res = {
             status: 400,
-            body: "Please pass a name on the query string or in the request body"
+            body: { "result" : "Please insert all the required values." }
         };
     }
 };
