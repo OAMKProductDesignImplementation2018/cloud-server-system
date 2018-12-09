@@ -11,7 +11,8 @@ const axiosCustom = axios.create({
 
 module.exports = async function (context, req) {
   context.log('JavaScript HTTP trigger function processed a request.');
-//if (req.headers['device-id'] == process.env['device-key'])
+  //if (req.headers['device-id'] == process.env['device-key'])
+
   const contentLength = parseInt(req.headers['content-length']);
   if(contentLength){
     context.log(contentLength);
@@ -68,8 +69,7 @@ module.exports = async function (context, req) {
                 if (identifiedFaceId != undefined) {
                   //cross-referance identified id with db
                   try{
-                    context.log("SELECT FirstName, LastName FROM dbo.Persons where PersonID = '" + identifiedFaceId.personId.toString() + "'");
-                    const identifyresult = await dbconnector.querydb(context, "SELECT FirstName, LastName, GroupID FROM dbo.Persons where PersonID = '" + identifiedFaceId.personId.toString() + "'");
+                    const identifyresult = await dbconnector.findperson(context, identifiedFaceId.personId.toString());
                     context.log("query tulos: ");
                     context.log(identifyresult);
                     if(identifyresult != undefined){
@@ -96,7 +96,7 @@ async function identifyDetectedFace(faceIds)
         "personGroupId": '1',
         "faceIds": faceIds,
         "maxNumOfCandidatesReturned": 1,
-        "confidenceThreshold": 0.8
+        "confidenceThreshold": 0.75
     }
     const returnData = { status: null,
                          data: null };
@@ -121,6 +121,8 @@ function nothingFound(message)
 
 function getJson(identifyresult)
 {
+    var date = (new Date()).toISOString().slice(0,10);
+    console.log(date);
     //TODO:find user data by id passed as parameter
     //TODO:get user preferanses from db (function1) and get data from selected API's(function2)
     return {
@@ -129,37 +131,12 @@ function getJson(identifyresult)
             "schedule" : "https://oiva.oamk.fi/_lukkarikone/kalenteri/json/varaukset.php?ryhma=" + identifyresult[0].GroupID,
         "foodMenu" : [
             {
-                "type" : "Lunch",
-                "menuItems" : [
-                    {
-                        "name" : "Food Name"
-                    }
-                ]
-            },
-            {
-                "type" : "Lunch",
-                "menuItems" : [
-                    {
-                        "name" : "Food Name"
-                    },
-                    {
-                        "name" : "Another Food Name"
-                    },
-                    {
-                        "name" : "Yet Another Food Name"
-                    }
-                ]
-            },
-            {
-                "type" : "Vegetable Lunch",
-                "menuItems" : [
-                    {
-                        "name" : "Food Name"
-                    },
-                    {
-                        "name" : "Another Food Name"
-                    }
-                ]
+            "url" : "https://www.amica.fi/api/restaurant/menu/day?date=" + date +"&language=fi&restaurantPageId=66287",
+            "allergiat/ruokavaliot tms" : [
+                {
+                    "data" : "foo"
+                }
+            ]
             }
         ],
         "notes" : [
