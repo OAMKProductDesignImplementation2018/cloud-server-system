@@ -104,7 +104,18 @@ function insertUser(context, fname, lname, email, pword, salt)
   request.addParameter("Email", TYPES.VarChar, email);
   request.addParameter("Pword", TYPES.VarChar, pword);
   request.addParameter("Salt", TYPES.VarChar, salt);
+
   return doqueryWithCustomRequest(context, request);
+}
+
+function addDiet(context, email){
+    const dietQuery = "INSERT INTO dbo.Dietary (UserID) SELECT ID FROM dbo.Persons WHERE Email = @Email";
+    var request = new Request(dietQuery, function(err) {
+    if (err) {
+        context.log(err);}
+    });
+    request.addParameter("Email", TYPES.VarChar, email);
+    return doqueryWithCustomRequest(context, request);
 }
 
 function getLoginCredentials(context, email)
@@ -141,29 +152,40 @@ function verifyEmail(context, email)
       return doqueryWithCustomRequest(context, request);
 }
 
-function updateUser(context, id, fname, lname, groupid, gender, restaurantid, g, l , vl, m, vh, veg, vs, a)
+function updateUser(context, id, fname, lname, groupid, gender, restaurantid)
 {
-  const query = "UPDATE dbo.Persons (FirstName, LastName, GroupID, Gender, RestaurantID) SET (@FirstName, @LastName, @GroupID, @Gender, @RestaurantID) WHERE ID = @ID";
-  const query = "UPDATE dbo.Dietary (G, L, VL, M, VH, VEG, VS, A) SET (@G, @L, @VL, @M, @VH, @VEG, @VS, @A) WHERE UserID = @ID";
+  const query = "UPDATE dbo.Persons SET FirstName = @FirstName, LastName = @LastName, GroupID = @GroupID, Gender = @Gender, RestaurantID = @RestaurantID WHERE ID = @ID";
   var request = new Request(query, function(err) {
     if (err) {
       context.log(err);}
   });
-  request.addParameter("ID", TYPES.Int, id);
+  request.addParameter("ID", TYPES.Int, parseInt(id));
   request.addParameter("FirstName", TYPES.VarChar, fname);
   request.addParameter("LastName", TYPES.VarChar, lname);
   request.addParameter("GroupID", TYPES.VarChar, groupid);
   request.addParameter("Gender", TYPES.VarChar, gender);
-  request.addParameter("RestaurantID", TYPES.Int, restaurantid);
+  request.addParameter("RestaurantID", TYPES.Int, parseInt(restaurantid));
 
-  request.addParameter("G", TYPES.Bit, g);
-  request.addParameter("L", TYPES.Bit, l);
-  request.addParameter("VL", TYPES.Bit, vl);
-  request.addParameter("M", TYPES.Bit, m);
-  request.addParameter("VH", TYPES.Bit, vh);
-  request.addParameter("VEG", TYPES.Bit, veg);
-  request.addParameter("VS", TYPES.Bit, vs);
-  request.addParameter("A", TYPES.Bit, a);
+  context.log(id);
+  return doqueryWithCustomRequest(context, request);
+}
+
+function updateDietary(context, id, g, l , vl, m, vh, veg, vs, a)
+{
+  const query = "UPDATE dbo.Dietary SET G = @G, L = @L, VL = @VL, M = @M, VH = @VH, VEG = @VEG, VS = @VS, A = @A WHERE UserID = @ID";
+  var request = new Request(query, function(err) {
+    if (err) {
+      context.log(err);}
+  });
+  request.addParameter("ID", TYPES.Int, parseInt(id));
+  request.addParameter("G", TYPES.Bit, parseInt(g));
+  request.addParameter("L", TYPES.Bit, parseInt(l));
+  request.addParameter("VL", TYPES.Bit, parseInt(vl));
+  request.addParameter("M", TYPES.Bit, parseInt(m));
+  request.addParameter("VH", TYPES.Bit, parseInt(vh));
+  request.addParameter("VEG", TYPES.Bit, parseInt(veg));
+  request.addParameter("VS", TYPES.Bit, parseInt(vs));
+  request.addParameter("A", TYPES.Bit, parseInt(a));
 
   return doqueryWithCustomRequest(context, request);
 }
@@ -176,5 +198,7 @@ module.exports = {
   checkEmail : verifyEmail,
   duplicateEmail: checkDuplicateEmail,
   findAllData : findAllPersonDetails,
-  update: updateUser
+  update : updateUser,
+  dietary : addDiet,
+  updatediet : updateDietary
 };
