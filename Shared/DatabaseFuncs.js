@@ -190,6 +190,58 @@ function updateDietary(context, id, g, l , vl, m, vh, veg, vs, a)
   return doqueryWithCustomRequest(context, request);
 }
 
+
+function findPersonNotes(context, personid) // en ole varma miten toimii vielä, tehty epä foreign key mallilla
+{
+  const query = "SELECT * FROM dbo.Notes LEFT OUTER JOIN dbo.Persons ON dbo.Persons.ID = dbo.Notes.PersonID WHERE dbo.Persons.PersonID = @PersonID";
+
+  var request = new Request(query, function(err) {
+    if (err) {
+      context.log(err);}
+  });
+  request.addParameter("PersonID", TYPES.VarChar, personid);
+  return doqueryWithCustomRequest(context, request);
+}
+
+function getPersonIDbyUserId(context, userid)
+{
+  const query = "SELECT PersonID FROM dbo.Persons WHERE ID = @ID";
+  
+  var request = new Request(query, function(err) {
+    if (err) {
+      context.log(err);}
+  });
+  request.addParameter("ID", TYPES.int, userid);
+  return doqueryWithCustomRequest(context, request);
+}
+
+function insertImageUrl(context, url, userid)
+{
+  const query = "INSERT INTO dbo.Images (ImageURL, PersonsID) VALUES (@ImageURL, @UserID)";
+  
+  var request = new Request(query, function(err) {
+    if (err) {
+      context.log(err);}
+  });
+  request.addParameter("ImageURL", TYPES.VarChar, url);
+  request.addParameter("UserID", TYPES.VarChar, userid);
+  return doqueryWithCustomRequest(context, request);
+}
+
+function updatePersonID(context, userid, personid)
+{
+  const query = "UPDATE dbo.Persons SET PersonID = '@PersonID' WHERE ID = '@UserID'";
+  
+  var request = new Request(query, function(err) {
+    if (err) {
+      context.log(err);}
+  });
+  request.addParameter("UserID", TYPES.int, userid);
+  request.addParameter("PersonID", TYPES.VarChar, personid);
+  return doqueryWithCustomRequest(context, request);
+}
+
+
 module.exports = {
   querydb: doquery,
   findperson: findPersonDetails,
@@ -200,5 +252,9 @@ module.exports = {
   findAllData : findAllPersonDetails,
   update : updateUser,
   dietary : addDiet,
-  updatediet : updateDietary
+  updatediet : updateDietary,
+  getnotes : findPersonNotes,
+  personIdfromId : getPersonIDbyUserId,
+  insertImageUrl : insertImageUrl,
+  updatePersonId : updatePersonID
 };
