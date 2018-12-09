@@ -211,32 +211,32 @@ function getPersonIDbyUserId(context, userid)
     if (err) {
       context.log(err);}
   });
-  request.addParameter("ID", TYPES.int, userid);
+  request.addParameter("ID", TYPES.Int, parseInt(userid));
   return doqueryWithCustomRequest(context, request);
 }
 
 function insertImageUrl(context, url, userid)
 {
-  const query = "INSERT INTO dbo.Images (ImageURL, PersonsID) VALUES (@ImageURL, @UserID)";
+  const query = "UPDATE dbo.Persons SET ImageURL = @ImageURL WHERE ID = @UserID";
   
   var request = new Request(query, function(err) {
     if (err) {
       context.log(err);}
   });
   request.addParameter("ImageURL", TYPES.VarChar, url);
-  request.addParameter("UserID", TYPES.VarChar, userid);
+  request.addParameter("UserID", TYPES.Int, parseInt(userid));
   return doqueryWithCustomRequest(context, request);
 }
 
 function updatePersonID(context, userid, personid)
 {
-  const query = "UPDATE dbo.Persons SET PersonID = '@PersonID' WHERE ID = '@UserID'";
+  const query = "UPDATE dbo.Persons SET PersonID = @PersonID WHERE ID = @UserID";
   
   var request = new Request(query, function(err) {
     if (err) {
       context.log(err);}
   });
-  request.addParameter("UserID", TYPES.int, userid);
+  request.addParameter("UserID", TYPES.Int, parseInt(userid));
   request.addParameter("PersonID", TYPES.VarChar, personid);
   return doqueryWithCustomRequest(context, request);
 }
