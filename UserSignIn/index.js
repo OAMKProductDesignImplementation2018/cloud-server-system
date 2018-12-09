@@ -13,7 +13,8 @@ function parsePerson(data){
         "imageurl" : data[0].ImageURL,
         "gender" : data[0].Gender,
         "organisation" : data[0].Organisation,
-        "email" : data[0].Email
+        "email" : data[0].Email,
+        "restaurantid" : data[0].RestaurantID
     }
 }
 
