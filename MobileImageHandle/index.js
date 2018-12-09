@@ -17,18 +17,6 @@ const containerName = process.env.ContainerName;
 var hostName = 'https://' + storageAccount + '.blob.core.windows.net';
 var blobService = azureStorage.createBlobService(storageAccount, storageAccessKey);
 
-// Set database configurations for connecting:
-/*var Connection = require('tedious').Connection;
-var Request = require('tedious').Request
-var TYPES = require('tedious').TYPES;
-
-var config = {
-    userName: process.env.DBusername,
-    password: process.env.DBpassword,
-    server: process.env.DBserver,
-    options: {encrypt: true, database: process.env.DBname}
-};*/
-
 const dbconnector = require('../Shared/DatabaseFuncs.js');
 
 function uploadImage(req) {
@@ -65,11 +53,11 @@ function uploadImage(req) {
     return finalImageData;
 }
 
-function saveImageToAzure(imageData) {
+function saveImageToAzure(imageData, id) {
     // Create random name for image
-    const shortid = require('shortid');
-    const imgName = shortid.generate();
-    newImgName = imgName + ".png";
+    //const shortid = require('shortid');
+    const imgName = id;
+    newImgName = imgName + ".jpg";
     console.log("image name: " + newImgName);
 
     // Create Blob
@@ -159,56 +147,6 @@ async function trainPersonGroup(personGroupId)
     return returnData;
 }
 
-/*async function dbQuery(query) {
-
-    // Connect to database
-    var connection = new Connection(config);
-    connection.on('connect', function(err) {
-        console.log("Connected to database");
-
-    // Make a request to database
-    request = new Request(query, function(err) {
-    if (err) {
-        console.log(err);}
-    });
-
-    request.on('requestCompleted', function () {
-        console.log('Request completed.');
-    });
-    connection.execSql(request);
-});
-}
-
-async function dbQueryGet(query, callback) {
-
-    var result = "";
-
-    // Connect to database
-    var connection = new Connection(config);
-    connection.on('connect', function(err) {
-        console.log("Connected to database");
-
-        // Make a request to database
-        var request = new Request(query, function (err, rowCount) {
-            if (err) {
-                callback(err);
-            } else {
-                if (rowCount < 1) {
-                    callback(null, null);
-                } else {
-                    callback(null, result);
-                }
-            }
-        });
-        request.on("row", function(rowObject) {
-            // populate the results array
-            result.push(rowObject);
-        });
-
-        connection.execSql(request);
-    });
-}*/
-
 module.exports = async function (context, req) {
     context.log('JavaScript HTTP trigger function processed a request.');
 
@@ -217,7 +155,7 @@ module.exports = async function (context, req) {
     context.log(req.headers);
 
     let imgData = uploadImage(req); // Get image from request
-    let imgUrl = saveImageToAzure(imgData);   // Upload image to Azure Blob Storage and get url
+    let imgUrl = saveImageToAzure(imgData, userId);   // Upload image to Azure Blob Storage and get url
 
     const personGroupId = '1'; // Set the GroupID
 
@@ -237,9 +175,9 @@ module.exports = async function (context, req) {
 
     // Find PersonID from database, if it doesn't exists: create new Face API Person
     try {
-        var query = await dbconnector.querydb(context, "SELECT PersonID FROM dbo.Persons WHERE ID = '"+ 
-                userId +"'");
-        personIdString = query[0].PersonID;
+        var findPersonQuery = await dbconnector.personIdfromId(context, userId);
+        context.log(findPersonQuery);
+        personIdString = findPersonQuery[0].PersonID;
         context.log(personIdString);
     }
     catch(err){
@@ -256,15 +194,13 @@ module.exports = async function (context, req) {
         personIdString = personCreateResponse.data.personId;
         context.log("personid:", personIdString);
         try {
-        // Set personId and imgUrl to database (Images table)
-        var query = await dbconnector.querydb(context, "INSERT INTO dbo.Images (ImageURL, PersonsID) VALUES ('"+
-                imgUrl +"', '"+ userId +"')");
-        var query = await dbconnector.querydb(context, "UPDATE dbo.Persons SET PersonID = '" + personIdString + 
-        "' WHERE ID = '" + userId + "'");
+        // Set personId and imgUrl to database
+        var insertImage = await dbconnector.insertImageUrl(context, imgUrl, userId);
+        var updatePersonID = await dbconnector.updatePersonId(context, userId, personIdString);
+
         }
         catch(err){
             context.log(err);
-
         }
     }
 
@@ -288,7 +224,9 @@ module.exports = async function (context, req) {
     }
 
     context.res = {
-        body: req.body
+        body: { "result" : "OK",
+                "header" : req.headers
+        }
     };
     
 
