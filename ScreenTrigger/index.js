@@ -74,10 +74,12 @@ module.exports = async function (context, req) {
                     context.log(identifyresult);
                     const dietary = await dbconnector.querydb(context, "SELECT * FROM dbo.Dietary WHERE UserID =" + identifyresult[0].ID);
                     context.log(dietary);
+                    const restaurant = await dbconnector.querydb(context, "SELECT * FROM dbo.Restaurants WHERE ID =" + identifyresult[0].RestaurantID);
+                    context.log(restaurant);
                     if(identifyresult != undefined){
                       context.res = {
                         // status: 200, /* Defaults to 200 */
-                        body: getJson(identifyresult, dietary),
+                        body: getJson(identifyresult, dietary, restaurant),
                         headers: {'Content-Type': 'application/json'}};
                     }
                   }catch(err){context.log(err);}
@@ -116,25 +118,22 @@ async function identifyDetectedFace(faceIds)
 
 function nothingFound(message)
 {
-    return {// status: 200, /* Defaults to 200 */
-            body: {"error" : message},
+    return {body: {"error" : message},
             headers: {'Content-Type': 'application/json'}};
 }
 
-function getJson(identifyresult, diet)
+function getJson(identifyresult, diet, restaurant)
 {
     var date = (new Date()).toISOString().slice(0,10);
     console.log(date);
-    //TODO:find user data by id passed as parameter
-    //TODO:get user preferanses from db (function1) and get data from selected API's(function2)
     return {
             "firstname" : identifyresult[0].FirstName,
             "lastname" : identifyresult[0].LastName,
             "schedule" : "https://oiva.oamk.fi/_lukkarikone/kalenteri/json/varaukset.php?ryhma=" + identifyresult[0].GroupID,
         "foodMenu" : [
             {
-            "url" : "https://www.amica.fi/api/restaurant/menu/day?date=" + date +"&language=fi&restaurantPageId=66287",
-            "allergiat/ruokavaliot tms" : [
+            "url" : "https://www.amica.fi/api/restaurant/menu/day?date=" + date +"&language=fi&restaurantPageId="+restaurant[0].restaurantId,
+            "filters" : [
                 {
                     "G" : diet[0].G,
                     "L" : diet[0].L,

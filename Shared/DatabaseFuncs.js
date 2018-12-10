@@ -70,7 +70,7 @@ function doqueryWithCustomRequest(context, request)
 
 function findPersonDetails(context, personid)
 {
-  const query = "SELECT ID, FirstName, LastName, GroupID FROM dbo.Persons WHERE PersonID = @PersonID";
+  const query = "SELECT ID, FirstName, LastName, GroupID, RestaurantID FROM dbo.Persons WHERE PersonID = @PersonID";
 
   var request = new Request(query, function(err) {
     if (err) {
