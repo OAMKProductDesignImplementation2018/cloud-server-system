@@ -2,10 +2,10 @@ const axios = require('axios');
 const dbconnector = require('../Shared/DatabaseFuncs');
 
 const axiosCustom = axios.create({
-    baseURL: 'https://northeurope.api.cognitive.microsoft.com/face/v1.0',    
+    baseURL: 'https://northeurope.api.cognitive.microsoft.com/face/v1.0',
     headers: {
         'Content-Type': 'application/json',
-        'Ocp-Apim-Subscription-Key': process.env['FaceApiAccessKey2']         
+        'Ocp-Apim-Subscription-Key': process.env['FaceApiAccessKey2']
     }
   });
 
@@ -28,7 +28,7 @@ module.exports = async function (context, req) {
     //  ----------------------------495851880813268952814107
     //  Content-Disposition: form-data; name="image"; filename="upload_test.png"
     //  Content-Type: image/png
-    // 
+    //
     // *Data starts here*
     let lineBreakCounter = 0;
     let dataStartIndex = 0;
@@ -72,10 +72,12 @@ module.exports = async function (context, req) {
                     const identifyresult = await dbconnector.findperson(context, identifiedFaceId.personId.toString());
                     context.log("query tulos: ");
                     context.log(identifyresult);
+                    const dietary = await dbconnector.querydb(context, "SELECT * FROM dbo.Dietary WHERE UserID =" + identifyresult[0].ID);
+                    context.log(dietary);
                     if(identifyresult != undefined){
                       context.res = {
                         // status: 200, /* Defaults to 200 */
-                        body: getJson(identifyresult),
+                        body: getJson(identifyresult, dietary),
                         headers: {'Content-Type': 'application/json'}};
                     }
                   }catch(err){context.log(err);}
@@ -96,7 +98,7 @@ async function identifyDetectedFace(faceIds)
         "personGroupId": '1',
         "faceIds": faceIds,
         "maxNumOfCandidatesReturned": 1,
-        "confidenceThreshold": 0.75
+        "confidenceThreshold": 0.7
     }
     const returnData = { status: null,
                          data: null };
@@ -119,7 +121,7 @@ function nothingFound(message)
             headers: {'Content-Type': 'application/json'}};
 }
 
-function getJson(identifyresult)
+function getJson(identifyresult, diet)
 {
     var date = (new Date()).toISOString().slice(0,10);
     console.log(date);
@@ -134,7 +136,14 @@ function getJson(identifyresult)
             "url" : "https://www.amica.fi/api/restaurant/menu/day?date=" + date +"&language=fi&restaurantPageId=66287",
             "allergiat/ruokavaliot tms" : [
                 {
-                    "data" : "foo"
+                    "G" : diet[0].G,
+                    "L" : diet[0].L,
+                    "VL" : diet[0].VL,
+                    "M" : diet[0].M,
+                    "VH" : diet[0].VH,
+                    "VEG" : diet[0].VEG,
+                    "VS" : diet[0].VS,
+                    "A" : diet[0].A
                 }
             ]
             }

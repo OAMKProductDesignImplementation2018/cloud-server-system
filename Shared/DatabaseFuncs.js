@@ -70,7 +70,7 @@ function doqueryWithCustomRequest(context, request)
 
 function findPersonDetails(context, personid)
 {
-  const query = "SELECT FirstName, LastName, GroupID FROM dbo.Persons WHERE PersonID = @PersonID";
+  const query = "SELECT ID, FirstName, LastName, GroupID FROM dbo.Persons WHERE PersonID = @PersonID";
 
   var request = new Request(query, function(err) {
     if (err) {
@@ -206,7 +206,7 @@ function findPersonNotes(context, personid) // en ole varma miten toimii vielä,
 function getPersonIDbyUserId(context, userid)
 {
   const query = "SELECT PersonID FROM dbo.Persons WHERE ID = @ID";
-  
+
   var request = new Request(query, function(err) {
     if (err) {
       context.log(err);}
@@ -218,7 +218,7 @@ function getPersonIDbyUserId(context, userid)
 function insertImageUrl(context, url, userid)
 {
   const query = "UPDATE dbo.Persons SET ImageURL = @ImageURL WHERE ID = @UserID";
-  
+
   var request = new Request(query, function(err) {
     if (err) {
       context.log(err);}
@@ -231,7 +231,7 @@ function insertImageUrl(context, url, userid)
 function updatePersonID(context, userid, personid)
 {
   const query = "UPDATE dbo.Persons SET PersonID = @PersonID WHERE ID = @UserID";
-  
+
   var request = new Request(query, function(err) {
     if (err) {
       context.log(err);}
