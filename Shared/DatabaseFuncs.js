@@ -206,7 +206,7 @@ function findPersonNotes(context, personid) // en ole varma miten toimii vielä,
 function getPersonIDbyUserId(context, userid)
 {
   const query = "SELECT PersonID FROM dbo.Persons WHERE ID = @ID";
-
+  
   var request = new Request(query, function(err) {
     if (err) {
       context.log(err);}
@@ -218,7 +218,7 @@ function getPersonIDbyUserId(context, userid)
 function insertImageUrl(context, url, userid)
 {
   const query = "UPDATE dbo.Persons SET ImageURL = @ImageURL WHERE ID = @UserID";
-
+  
   var request = new Request(query, function(err) {
     if (err) {
       context.log(err);}
@@ -231,13 +231,38 @@ function insertImageUrl(context, url, userid)
 function updatePersonID(context, userid, personid)
 {
   const query = "UPDATE dbo.Persons SET PersonID = @PersonID WHERE ID = @UserID";
-
+  
   var request = new Request(query, function(err) {
     if (err) {
       context.log(err);}
   });
   request.addParameter("UserID", TYPES.Int, parseInt(userid));
   request.addParameter("PersonID", TYPES.VarChar, personid);
+  return doqueryWithCustomRequest(context, request);
+}
+
+function updateDeviceToken(context, deviceid, token)
+{
+  const query = "UPDATE dbo.Devices apikey = @token WHERE deviceid = @id";
+  
+  var request = new Request(query, function(err) {
+    if (err) {
+      context.log(err);}
+  });
+  request.addParameter("id", TYPES.VarChar, deviceid);
+  request.addParameter("token", TYPES.VarChar, token);
+  return doqueryWithCustomRequest(context, request);
+}
+
+function getDeviceCredentials(context, deviceid)
+{
+  const query = "SELECT * FROM dbo.Devices WHERE deviceid = @id";
+  
+  var request = new Request(query, function(err) {
+    if (err) {
+      context.log(err);}
+  });
+  request.addParameter("id", TYPES.VarChar, deviceid);
   return doqueryWithCustomRequest(context, request);
 }
 
@@ -256,5 +281,6 @@ module.exports = {
   getnotes : findPersonNotes,
   personIdfromId : getPersonIDbyUserId,
   insertImageUrl : insertImageUrl,
-  updatePersonId : updatePersonID
+  updatePersonId : updatePersonID,
+  getdevicedetails : getDeviceCredentials
 };
