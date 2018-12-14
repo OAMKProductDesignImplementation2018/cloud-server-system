@@ -1,20 +1,41 @@
 const axios = require('axios');
 const dbconnector = require('../Shared/DatabaseFuncs');
+const Auth = require('../Shared/auth');
 
 const axiosCustom = axios.create({
-    baseURL: 'https://northeurope.api.cognitive.microsoft.com/face/v1.0',
+    baseURL: 'https://northeurope.api.cognitive.microsoft.com/face/v1.0',    
     headers: {
         'Content-Type': 'application/json',
-        'Ocp-Apim-Subscription-Key': process.env['FaceApiAccessKey2']
+        'Ocp-Apim-Subscription-Key': process.env['FaceApiAccessKey2']         
     }
   });
 
 module.exports = async function (context, req) {
   context.log('JavaScript HTTP trigger function processed a request.');
-  //if (req.headers['device-id'] == process.env['device-key'])
+  const token = req.headers['apikey'];
+  const deviceid = req.headers['deviceid'];
+  const organizationid = req.headers['organizationid'];
+  context.log(deviceid);
+  context.log(token);
+  context.log(organizationid);
+  const devicecreds = await dbconnector.getdevicedetails(context, deviceid);
+  context.log(devicecreds);
+  var credentialcheck = false;
 
-  const contentLength = parseInt(req.headers['content-length']);
-  if(contentLength){
+   if (token != undefined && token === 'null')
+   {
+      const newtoken = Auth.auth({'org' : organizationid, 'dev' : deviceid, 'token' :token});
+      context.log(newtoken);/*if(newtoken != undefined) {await dbconnector}*/
+      context.res = {body: {"token" : newtoken},
+                     headers: {'Content-Type': 'application/json'}};
+   } else if (devicecreds != undefined && token != undefined && deviceid != undefined && organizationid != undefined) {
+    const creds = Auth.ver(token);
+    context.log(creds);
+    credentialcheck = Boolean(creds.org == organizationid && creds.dev == deviceid);
+  }
+   if (credentialcheck){
+   const contentLength = parseInt(req.headers['content-length']);
+   if(contentLength){
     context.log(contentLength);
     // Get the multipart boundary marker, see multipart details https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html
     const boundaryMarkerIndex = req.headers['content-type'].indexOf("=");
@@ -28,7 +49,7 @@ module.exports = async function (context, req) {
     //  ----------------------------495851880813268952814107
     //  Content-Disposition: form-data; name="image"; filename="upload_test.png"
     //  Content-Type: image/png
-    //
+    // 
     // *Data starts here*
     let lineBreakCounter = 0;
     let dataStartIndex = 0;
@@ -76,6 +97,10 @@ module.exports = async function (context, req) {
                     context.log(dietary);
                     const restaurant = await dbconnector.querydb(context, "SELECT * FROM dbo.Restaurants WHERE ID =" + identifyresult[0].RestaurantID);
                     context.log(restaurant);
+                    const token = Auth.auth(identifyresult[0]);
+                    //context.log(token);
+                    const decrypted = Auth.ver(token);
+                    //context.log(decrypted);
                     if(identifyresult != undefined){
                       context.res = {
                         // status: 200, /* Defaults to 200 */
@@ -92,7 +117,7 @@ module.exports = async function (context, req) {
         context.res = nothingFound("Error");
     }
  } else {context.res = nothingFound("no content");}
-};
+}};
 
 async function identifyDetectedFace(faceIds)
 {
@@ -132,6 +157,7 @@ function getJson(identifyresult, diet, restaurant)
             "schedule" : "https://oiva.oamk.fi/_lukkarikone/kalenteri/json/varaukset.php?ryhma=" + identifyresult[0].GroupID,
         "foodMenu" : [
             {
+            "name" : restaurant[0].name,
             "url" : "https://www.amica.fi/api/restaurant/menu/day?date=" + date +"&language=fi&restaurantPageId="+restaurant[0].restaurantId,
             "filters" : [
                 {
