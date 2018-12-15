@@ -3,10 +3,10 @@ const dbconnector = require('../Shared/DatabaseFuncs');
 const Auth = require('../Shared/auth');
 
 const axiosCustom = axios.create({
-    baseURL: 'https://northeurope.api.cognitive.microsoft.com/face/v1.0',    
+    baseURL: 'https://northeurope.api.cognitive.microsoft.com/face/v1.0',
     headers: {
         'Content-Type': 'application/json',
-        'Ocp-Apim-Subscription-Key': process.env['FaceApiAccessKey2']         
+        'Ocp-Apim-Subscription-Key': process.env['FaceApiAccessKey2']
     }
   });
 
@@ -25,13 +25,15 @@ module.exports = async function (context, req) {
    if (token != undefined && token === 'null')
    {
       const newtoken = Auth.auth({'org' : organizationid, 'dev' : deviceid, 'token' :token});
-      context.log(newtoken);/*if(newtoken != undefined) {await dbconnector}*/
+      context.log(newtoken);
       context.res = {body: {"token" : newtoken},
                      headers: {'Content-Type': 'application/json'}};
    } else if (devicecreds != undefined && token != undefined && deviceid != undefined && organizationid != undefined) {
-    const creds = Auth.ver(token);
-    context.log(creds);
-    credentialcheck = Boolean(creds.org == organizationid && creds.dev == deviceid);
+    try {
+        const creds = Auth.ver(token);
+        context.log(creds);
+        credentialcheck = Boolean(creds.org == organizationid && creds.dev == deviceid && creds.org == devicecreds[0].organizationid && creds.dev == devicecreds[0].deviceid);
+    } catch(err) {context.res = nothingFound(err);}
   }
    if (credentialcheck){
    const contentLength = parseInt(req.headers['content-length']);
@@ -49,7 +51,7 @@ module.exports = async function (context, req) {
     //  ----------------------------495851880813268952814107
     //  Content-Disposition: form-data; name="image"; filename="upload_test.png"
     //  Content-Type: image/png
-    // 
+    //
     // *Data starts here*
     let lineBreakCounter = 0;
     let dataStartIndex = 0;
@@ -117,6 +119,8 @@ module.exports = async function (context, req) {
         context.res = nothingFound("Error");
     }
  } else {context.res = nothingFound("no content");}
+} else {
+    context.res = nothingFound("Auhentication failed");
 }};
 
 async function identifyDetectedFace(faceIds)
