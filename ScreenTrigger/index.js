@@ -22,13 +22,7 @@ module.exports = async function (context, req) {
   context.log(devicecreds);
   var credentialcheck = false;
 
-   if (token != undefined && token === 'null')
-   {
-      const newtoken = Auth.auth({'org' : organizationid, 'dev' : deviceid, 'token' :token});
-      context.log(newtoken);
-      context.res = {body: {"token" : newtoken},
-                     headers: {'Content-Type': 'application/json'}};
-   } else if (devicecreds != undefined && token != undefined && deviceid != undefined && organizationid != undefined) {
+  if (devicecreds != undefined && token != undefined && deviceid != undefined && organizationid != undefined) {
     try {
         const creds = Auth.ver(token);
         context.log(creds);
@@ -120,7 +114,25 @@ module.exports = async function (context, req) {
     }
  } else {context.res = nothingFound("no content");}
 } else {
-    context.res = nothingFound("Auhentication failed");
+   if (token != undefined && token === 'null' && devicecreds[0].deviceid !== undefined)
+   {
+      var date = (new Date()).toISOString().slice(0,10);
+      const organization = await dbconnector.querydb(context, "SELECT * FROM dbo.Organization WHERE ID =" + devicecreds[0].organizationid);
+      const restaurant = await dbconnector.querydb(context, "SELECT * FROM dbo.Restaurants WHERE ID =" + organization[0].restaurantid);
+      const newtoken = Auth.auth({'org' : organizationid, 'dev' : deviceid, 'token' :token});
+      context.log(restaurant);
+      context.log(newtoken);
+      context.res = {body: {"token" : newtoken,
+                            "organization" : organization[0].name,
+                            "foodMenu" : [
+                                          {
+                                           "name" : restaurant[0].name,
+                                           "url" : "https://www.amica.fi/api/restaurant/menu/day?date=" + date +"&language=fi&restaurantPageId="+restaurant[0].restaurantId,
+                     }]},
+                     headers: {'Content-Type': 'application/json'}};
+   } else {
+       context.res = nothingFound("Auhentication failed");
+       }
 }};
 
 async function identifyDetectedFace(faceIds)
