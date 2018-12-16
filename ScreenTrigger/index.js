@@ -15,12 +15,14 @@ module.exports = async function (context, req) {
   const token = req.headers['apikey'];
   const deviceid = req.headers['deviceid'];
   const organizationid = req.headers['organizationid'];
+  var credentialcheck = false;
   context.log(deviceid);
   context.log(token);
   context.log(organizationid);
-  const devicecreds = await dbconnector.getdevicedetails(context, deviceid);
+  var devicecreds = {};
+  try { devicecreds = await dbconnector.getdevicedetails(context, deviceid);}
+  catch(err){context.log(err);}
   context.log(devicecreds);
-  var credentialcheck = false;
 
   if (devicecreds != undefined && token != undefined && deviceid != undefined && organizationid != undefined) {
     try {
@@ -114,7 +116,7 @@ module.exports = async function (context, req) {
     }
  } else {context.res = nothingFound("no content");}
 } else {
-   if (token != undefined && token === 'null' && devicecreds[0].deviceid !== undefined)
+   if (token === 'null' && devicecreds[0] !== undefined)
    {
       var date = (new Date()).toISOString().slice(0,10);
       const organization = await dbconnector.querydb(context, "SELECT * FROM dbo.Organization WHERE ID =" + devicecreds[0].organizationid);
@@ -122,6 +124,7 @@ module.exports = async function (context, req) {
       const newtoken = Auth.auth({'org' : organizationid, 'dev' : deviceid, 'token' :token});
       context.log(restaurant);
       context.log(newtoken);
+      if (organization[0].id == organizationid && devicecreds[0].deviceid == deviceid) {
       context.res = {body: {"token" : newtoken,
                             "organization" : organization[0].name,
                             "foodMenu" : [
@@ -130,9 +133,8 @@ module.exports = async function (context, req) {
                                            "url" : "https://www.amica.fi/api/restaurant/menu/day?date=" + date +"&language=fi&restaurantPageId="+restaurant[0].restaurantId,
                      }]},
                      headers: {'Content-Type': 'application/json'}};
-   } else {
-       context.res = nothingFound("Auhentication failed");
-       }
+      } else {context.res = nothingFound("Auhentication failed");}
+   } else {context.res = nothingFound("Auhentication failed");}
 }};
 
 async function identifyDetectedFace(faceIds)
